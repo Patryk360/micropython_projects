@@ -6,8 +6,10 @@ import ujson
 from motorControler import motorSpeed, motorLeft, motorRight, motorStop
 from imuControler import temperature, gyro
 from servoControler import setServoDegree, getServoDegree
-#from radioControler import startListening
-#import radioControler
+from wifiControler import connectToAP, connectToBoat, send
+
+connectToAP("PILOT_RC", "T7es7yeumU[WQFv#tWub")
+connectToBoat("192.168.4.1", 3333)
 
 motorSpeed(180)
 motorLeft()
@@ -16,16 +18,15 @@ motorRight()
 sleep(2)
 motorStop()
 
-#startListening()
 setServoDegree(11)
 sleep(1)
 print(str(getServoDegree()))
 
 while True:
-    print(temperature())
+    temp = temperature()
     data = ujson.loads(gyro())
     x = data["x"]
     y = data["y"]
     z = data["z"]
-    print(f"X: {x} Y: {y} Z: {z} ")
-    sleep(1)
+    send(f"X: {x} Y: {y} Z: {z} Temp: {temp} ")
+    sleep(5)
