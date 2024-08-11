@@ -33,10 +33,10 @@ def startServer():
         lcd.clear()
         lcd.putstr("Connected!")
         while True:
-            data = clientSocket.recv(1024)
-            if not data:
+            dataRes = clientSocket.recv(1024)
+            if not dataRes:
                 break
-            joystick()
-            print('Received:', data.decode())
-            clientSocket.send('Message received'.encode())
+            clientSocket.send(joystick().encode())
+            print(dataRes.decode())
         clientSocket.close()
+        sleep(0.1)
