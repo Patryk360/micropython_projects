@@ -14,8 +14,7 @@ def setServoDegree(degree):
     duty = int((degree / 180) * (servoMaxPWM - servoMinPWM) + servoMinPWM)
     
     #duty = 4916-(19*10)
-    
-    print(duty)
+
     
     servo.duty_u16(duty)
 

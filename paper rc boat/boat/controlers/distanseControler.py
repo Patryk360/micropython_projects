@@ -1,6 +1,7 @@
+from machine import Pin
 from utime import sleep_us, ticks_us
-trig = Pin(0, Pin.OUT)
-echo = Pin(0, Pin.IN)
+trig = Pin(8, Pin.OUT)
+echo = Pin(7, Pin.IN)
 
 def distanse():
     trig.value(0)

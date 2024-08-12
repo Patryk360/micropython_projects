@@ -10,8 +10,8 @@ def scalePWM(value):
 
 def motorSpeed(speed):
     pwm_motor = PWM(15)
-    pwm_motor.duty_u16(scalePWM(speed))
-    pwm_motor.freq(5000)
+    pwm_motor.duty_u16(scalePWM((255 * speed) / 100))
+    pwm_motor.freq(7000)
 
 motor_l = Pin(20, Pin.OUT)
 motor_r = Pin(21, Pin.OUT)

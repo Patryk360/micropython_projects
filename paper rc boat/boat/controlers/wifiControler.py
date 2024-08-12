@@ -5,6 +5,7 @@ import ujson
 from motorControler import motorSpeed, motorLeft, motorRight, motorStop
 from imuControler import temperature, gyro
 from servoControler import setServoDegree, getServoDegree
+from distanseControler import distanse
 
 s = None
 
@@ -43,6 +44,7 @@ def connectToBoat(ip, port):
         temp = temperature()
         gyroData = ujson.loads(gyro())
         servo = getServoDegree()
+        dis = distanse()
     
         dataJSON = {
             "gyro": {
@@ -51,17 +53,15 @@ def connectToBoat(ip, port):
                 "z": gyroData["z"]
             },
             "temperature": temp,
-            "servo": servo
+            "servo": servo,
+            "distanse": dis
         }
     
         data = ujson.dumps(dataJSON)
         s.send(data.encode())
         print(dataRes.decode())
         
-        x = ujson.loads(dataRes.decode())
-        setServoDegree((x['joystick']['x'] / 100) * 180)
-        
-        sleep(0.1)
-
-def send(msg):
-    if s: s.send(msg)
+        d = ujson.loads(dataRes.decode())
+        setServoDegree((d['joystick']['x'] / 100) * 180)
+        motorSpeed(d['motor']['speed'])
+        motorLeft()

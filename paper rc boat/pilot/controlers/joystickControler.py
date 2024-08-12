@@ -25,7 +25,11 @@ def joystick():
             "y": round(percentageY / 10) * 10,
             "sw": leftJoyClick.value()
         },
-        "potentiometer": round(percentageP / 5) * 5
+        "motor": {
+            "speed": round(percentageP / 5) * 5,
+            "right": 0,
+            "left": 1
+        }
     }
     
     data = ujson.dumps(dataJSON)

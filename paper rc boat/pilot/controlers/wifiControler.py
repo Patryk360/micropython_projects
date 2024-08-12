@@ -38,5 +38,3 @@ def startServer():
                 break
             clientSocket.send(joystick().encode())
             print(dataRes.decode())
-        clientSocket.close()
-        sleep(0.1)
