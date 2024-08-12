@@ -85,7 +85,7 @@ class NRF24L01:
         self.reg_write(SETUP_RETR, (6 << 4) | 8)
 
         # set rf power and speed
-        self.set_power_speed(POWER_3, SPEED_2M)  # Best for point to point links
+        self.set_power_speed(POWER_0, SPEED_2M)  # Best for point to point links
 
         # init CRC
         self.set_crc(2)
