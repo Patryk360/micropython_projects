@@ -5,9 +5,12 @@ from time import sleep
 def start():
     print("MANUAL")
 
+    ssid = "LINEFOLLOWER"
+    password = "linefollower#557"
+
     ap = network.WLAN(network.AP_IF)
     ap.active(True)
-    ap.config(essid="LINEFOLLOWER", password="linefollower#557")
+    ap.config(ssid=ssid, password=password, authmode=3, channel=11)
 
     while not ap.active():
         print("Starting...")
