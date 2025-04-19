@@ -1,20 +1,14 @@
 import network
 import socket
 from time import sleep
+import config
 
 def start():
     print("MANUAL")
 
-    ssid = "LINEFOLLOWER"
-    password = "linefollower#557"
-
     ap = network.WLAN(network.AP_IF)
     ap.active(True)
-    ap.config(ssid=ssid, password=password, authmode=3, channel=11)
-
-    while not ap.active():
-        print("Starting...")
-        sleep(1)
+    ap.config(ssid=config.ssid, password=config.password, authmode=3, channel=10)
 
     print("Access Point active!")
     print("IP:", ap.ifconfig()[0])

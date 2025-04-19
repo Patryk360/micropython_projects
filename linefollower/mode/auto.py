@@ -1,6 +1,7 @@
 from machine import Pin, ADC, PWM, SoftI2C
 from ssd1306 import SSD1306_I2C
 from time import sleep
+import config
 sensor_1 = ADC(Pin(0))
 sensor_2 = ADC(Pin(1))
 
