@@ -58,26 +58,18 @@ def turn_right():
 
 def start():
     while True:
-        if config.mode == 0:
-            if sensor_left.read() > 1000 and sensor_right.read() > 1000:
-                reset()
-                pwm_left.duty_u16(engine(50))
-                pwm_right.duty_u16(engine(50))
-            else:
-                if sensor_left.read() < 1000:
-                    turn_left()
-                if sensor_right.read() > 1000:
-                    turn_right()
-                
-            oled.fill(0)
-            oled.text(f"S L:{sensor_left.read()}", 0, 0)
-            oled.text(f"S R:{sensor_right.read()}", 0, 10)
-            oled.text(f"Mode: {config.mode}", 0, 30)
-            oled.show()
+        if sensor_left.read() > 1000 and sensor_right.read() > 1000:
+            reset()
+            pwm_left.duty_u16(engine(50))
+            pwm_right.duty_u16(engine(50))
         else:
-            in1_left.off()
-            in2_left.off()
-            in3_right.off()
-            in4_right.off()
-            pwm_left.duty_u16(0)
-            pwm_right.duty_u16(0)
+            if sensor_left.read() < 1000:
+                turn_left()
+            if sensor_right.read() > 1000:
+                turn_right()
+                
+        oled.fill(0)
+        oled.text(f"S L:{sensor_left.read()}", 0, 0)
+        oled.text(f"S R:{sensor_right.read()}", 0, 10)
+        oled.text(f"Mode: {config.mode}", 0, 30)
+        oled.show()
