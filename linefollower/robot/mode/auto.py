@@ -1,7 +1,6 @@
 from machine import Pin, ADC, PWM, SoftI2C
 from ssd1306 import SSD1306_I2C
 from time import sleep
-import config
 
 sensor_left = ADC(Pin(0))
 sensor_left.atten(ADC.ATTN_11DB)
@@ -71,5 +70,4 @@ def start():
         oled.fill(0)
         oled.text(f"S L:{sensor_left.read()}", 0, 0)
         oled.text(f"S R:{sensor_right.read()}", 0, 10)
-        oled.text(f"Mode: {config.mode}", 0, 30)
         oled.show()
