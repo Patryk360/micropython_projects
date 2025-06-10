@@ -7,10 +7,11 @@ import config
 from time import sleep
 import config
 
+import gc
+
 i2c = SoftI2C(scl=Pin(9), sda=Pin(8))
 oled = SSD1306_I2C(128, 64, i2c)
 
-# Silniki
 pwm_left = PWM(Pin(4))
 pwm_left.freq(20000)
 in1_left = Pin(21, Pin.OUT)
@@ -25,7 +26,6 @@ in4_right = Pin(5, Pin.OUT)
 in3_right.on()
 in4_right.off()
 
-# Zakres prędkości
 min_speed = 43000
 max_speed = 65000
 
@@ -64,7 +64,7 @@ def turn_right(percent):
 def start():
     ap = network.WLAN(network.AP_IF)
     ap.active(True)
-    ap.config(ssid=config.ssid, password=config.password, authmode=3, channel=11)
+    ap.config(ssid=config.ssid, password=config.password, authmode=3, channel=9)
 
     print("AP active!")
     print("IP:", ap.ifconfig()[0])
@@ -78,9 +78,9 @@ def start():
     print("Server running on 0.0.0.0:80")
 
     while True:
+        gc.collect()
         try:
             cs, addr = s.accept()
-            #print("New connection from", addr)
 
             request = cs.recv(1024)
             if not request:
@@ -92,9 +92,12 @@ def start():
                 x = data.get("x")
                 y = data.get("y")
                 
+                mem = gc.mem_free()
+                
                 oled.fill(0)
                 oled.text(f"X:{x}", 0, 0)
                 oled.text(f"Y:{y}", 0, 10)
+                oled.text(f"MEM:{mem/1024}", 0, 20)
                 oled.show()
                 
                 reset()

@@ -5,13 +5,17 @@ import network
 import socket
 import ujson
 from time import sleep
-from machine import Pin, I2C
+from machine import Pin, SoftI2C
 import config
 from ADS1115 import *
+from ssd1306 import SSD1306_I2C
 
-i2c = I2C(scl=Pin(9), sda=Pin(8))
+i2c = SoftI2C(scl=Pin(9), sda=Pin(8))
 adc = ADS1115(i2c=i2c)
 adc.setVoltageRange_mV(ADS1115_RANGE_4096)
+
+i2c = SoftI2C(scl=Pin(9), sda=Pin(8))
+oled = SSD1306_I2C(128, 64, i2c)
 
 SERVER_IP = "192.168.4.1"
 SERVER_PORT = 80
@@ -45,12 +49,12 @@ def connect_wifi(ssid, password):
     except OSError as e:
             print(f"{e}")
 
-def send_mode(mode, x, y):
+def send_mode(x, y):
     try:
         addr = socket.getaddrinfo(SERVER_IP, SERVER_PORT)[0][-1]
         s = socket.socket()
         s.connect(addr)
-        data = ujson.dumps({"mode": mode, "x": x, "y": y })
+        data = ujson.dumps({"x": x, "y": y})
         s.send(data.encode())
 
         response = s.recv(1024)
@@ -71,10 +75,15 @@ def main():
         while True:
             x = scale_to_percent(read(ADS1115_COMP_0_GND), centerX)
             y = scale_to_percent(read(ADS1115_COMP_1_GND), centerY)
+            
+            oled.fill(0)
+            oled.text(f"X:{x}", 0, 0)
+            oled.text(f"Y:{y}", 0, 10)
+            oled.show()
+            
             print(read(ADS1115_COMP_0_GND))
             print(x)
             print(y)
-            send_mode(1, x, y)
-            sleep(0.01)
+            send_mode(x, y)
 
 main()

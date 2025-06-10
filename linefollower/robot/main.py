@@ -2,7 +2,6 @@ import sys
 sys.path.append("/libs")
 sys.path.append("/mode")
 sys.path.append("/database")
-from time import sleep
 
 from machine import Pin
 
