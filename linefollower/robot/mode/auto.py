@@ -10,7 +10,6 @@ sensor_right.atten(ADC.ATTN_11DB)
 i2c = SoftI2C(scl=Pin(9), sda=Pin(8))
 oled = SSD1306_I2C(128, 64, i2c)
 
-# Silniki
 pwm_left = PWM(Pin(4))
 pwm_left.freq(20000)
 in1_left = Pin(21, Pin.OUT)
@@ -25,7 +24,6 @@ in4_right = Pin(5, Pin.OUT)
 in3_right.on()
 in4_right.off()
 
-# Zakres prędkości
 min_speed = 43000
 max_speed = 65000
 
@@ -59,8 +57,8 @@ def start():
     while True:
         if sensor_left.read() > 1000 and sensor_right.read() > 1000:
             reset()
-            pwm_left.duty_u16(engine(50))
-            pwm_right.duty_u16(engine(50))
+            pwm_left.duty_u16(engine(20))
+            pwm_right.duty_u16(engine(20))
         else:
             if sensor_left.read() < 1000:
                 turn_left()
