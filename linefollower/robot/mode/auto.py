@@ -60,7 +60,9 @@ def start():
             pwm_left.duty_u16(engine(20))
             pwm_right.duty_u16(engine(20))
         else:
-            if sensor_left.read() < 1000:
+            if sensor_left.read() < 1000 and sensor_right.read() < 1000:
+                turn_left()
+            if sensor_left.read() > 1000:
                 turn_left()
             if sensor_right.read() > 1000:
                 turn_right()
