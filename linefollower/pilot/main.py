@@ -6,6 +6,7 @@ from time import sleep
 from machine import Pin, SoftI2C
 import linefollower
 import boat
+import test1
 from ssd1306 import SSD1306_I2C
 from ADS1115 import *
 
@@ -41,7 +42,6 @@ while True:
     oled.fill(0)
     oled.text(f"{mode+1}. {modes[mode]}", 0, 0)
     oled.show()
-    print(sw_right.value())
     if sw_right.value() == 0:
         if mode == 0:
             linefollower.start()
@@ -49,5 +49,7 @@ while True:
         if mode == 1:
             boat.start()
             sleep(2)
-    print(sw_left.value())
+        if mode == 2:
+            test1.start()
+            sleep(2)
     sleep(0.15)
