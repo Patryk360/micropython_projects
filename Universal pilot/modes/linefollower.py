@@ -49,7 +49,8 @@ def connect_wifi(ssid, password):
         else:
             print("Failed to connect")
             oled.fill(0)
-            oled.text("Failed to connect", 0, 0)
+            oled.text("Failed to", 0, 0)
+            oled.text("connect!", 0, 10)
             oled.show()
             return False
     except OSError as e:
