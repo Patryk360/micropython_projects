@@ -5,14 +5,13 @@ import network
 import socket
 import ujson
 from time import sleep
-from machine import Pin, SoftI2C
+from machine import Pin, I2C
 import config
 from ADS1115 import *
 from ssd1306 import SSD1306_I2C
-
 import gc
 
-i2c = SoftI2C(scl=Pin(9), sda=Pin(8))
+i2c = I2C(scl=Pin(9), sda=Pin(8))
 adc = ADS1115(i2c=i2c)
 adc.setVoltageRange_mV(ADS1115_RANGE_4096)
 oled = SSD1306_I2C(128, 64, i2c)
@@ -76,14 +75,14 @@ def scale_to_percent(value, center):
     return max(min(percent, 100), -100) 
 
 def start():
-    centerX = read(ADS1115_COMP_0_GND)
-    centerY = read(ADS1115_COMP_1_GND)
+    centerX = read(ADS1115_COMP_1_GND)
+    centerY = read(ADS1115_COMP_0_GND)
     if connect_wifi(config.ssid, config.password):
         while True:
             gc.collect()
             
-            x = scale_to_percent(read(ADS1115_COMP_0_GND), centerX)
-            y = scale_to_percent(read(ADS1115_COMP_1_GND), centerY)
+            x = scale_to_percent(read(ADS1115_COMP_1_GND), centerX)
+            y = scale_to_percent(read(ADS1115_COMP_0_GND), centerY)
             mem = gc.mem_free()
             
             oled.fill(0)
@@ -92,7 +91,6 @@ def start():
             oled.text(f"MEM:{mem/1024}", 0, 20)
             oled.show()
             
-            print(read(ADS1115_COMP_0_GND))
             print(x)
             print(y)
             send_mode(x, y)
