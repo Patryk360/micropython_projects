@@ -2,15 +2,15 @@ from libs.core import ULoRa
 from machine import SPI, Pin, I2C
 from libs.ssd1306 import SSD1306_I2C
 
-spi = SPI(0, baudrate=5000000, polarity=0, phase=0, sck=Pin(18), mosi=Pin(19), miso=Pin(16))
+spi = SPI(1, baudrate=5000000, polarity=0, phase=0, sck=Pin(4), mosi=Pin(6), miso=Pin(5))
 
-i2c = I2C(0, scl=Pin(1), sda=Pin(0))
+i2c = I2C(0, scl=Pin(9), sda=Pin(8))
 oled = SSD1306_I2C(128, 64, i2c)
 
 pins = {
-    "ss": 17,
-    "reset": 27,
-    "dio0": 28,
+    "ss": 3,
+    "reset": 1,
+    "dio0": 10,
 }
 
 parameters = {
@@ -29,6 +29,8 @@ parameters = {
 
 lora = ULoRa(spi, pins, parameters)
 
+lora.receive()
+
 oled.fill(0)
 oled.text(f"OK", 0, 0)
 oled.show()
@@ -36,10 +38,10 @@ oled.show()
 v = 0
 
 while True:
-    msg = lora.listen(timeout=5000)
-    if msg:
-        v +=1
+    if lora.received_packet():
+        msg = lora.read_payload()
         print("Odebrano:", msg.decode())
+        v +=1
         oled.fill(0)
         oled.text(f"OK {v} {msg.decode()}", 0, 0)
         oled.show()

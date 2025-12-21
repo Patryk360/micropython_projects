@@ -2,8 +2,8 @@ from libs.core import ULoRa
 from machine import SPI, Pin
 from time import sleep
 
-spi = SPI(1, baudrate=5000000, polarity=0, phase=0,sck=Pin(25), mosi=Pin(27), miso=Pin(26))
-pins = {"ss": 14, "reset": 32, "dio0": 33}
+spi = SPI(1, baudrate=5000000, polarity=0, phase=0, sck=Pin(25), mosi=Pin(27), miso=Pin(26))
+pins = {"ss": 14, "reset": 2, "dio0": 4}
 
 parameters = {
     "frequency": 433000000,
@@ -22,5 +22,5 @@ parameters = {
 lora = ULoRa(spi, pins, parameters)
 
 while True:
-    lora.println("Hej!")
-    sleep(10)
+    lora.println("L5:R4:Q2")
+    sleep(5)
