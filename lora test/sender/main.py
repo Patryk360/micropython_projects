@@ -21,6 +21,10 @@ parameters = {
 
 lora = ULoRa(spi, pins, parameters)
 
+v = 0
+
 while True:
-    lora.println("L5:R4:Q2")
+    v +=1
+    print(f"TEST {v}")
+    lora.println(f"TEST {v}")
     sleep(5)
