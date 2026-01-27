@@ -1,115 +1,58 @@
-from machine import UART, Pin, PWM
-from time import sleep
-import re
+from libs.core import ULoRa
+from machine import SPI, Pin, I2C
+from libs.ssd1306 import SSD1306_I2C
 
-uart = UART(0, baudrate=9600, tx=Pin(0), rx=Pin(1))
+spi = SPI(1, baudrate=1000000, polarity=0, phase=0, sck=Pin(4), mosi=Pin(6), miso=Pin(5))
 
-led_front = Pin(4, Pin.OUT)
-led_back = Pin(3, Pin.OUT)
+i2c = I2C(0, scl=Pin(9), sda=Pin(8))
+oled = SSD1306_I2C(128, 64, i2c)
 
-servo = PWM(Pin(2))
-servo.freq(50)
+pins = {
+    "ss": 3,
+    "reset": 1,
+    "dio0": 10,
+}
+  
+parameters = {
+    "frequency": 433000000,
+    "frequency_offset": 0,
+    "tx_power_level": 14,
+    "signal_bandwidth": 125e3,
+    "spreading_factor": 9,
+    "coding_rate": 5,
+    "preamble_length": 8,
+    "implicitHeader": False,
+    "sync_word": 0x2A,
+    "enable_CRC": True,
+    "invert_IQ": False,
+}
 
-current_angle = 45
+lora = ULoRa(spi, pins, parameters)
 
-def set_angle(angle):
-    global current_angle
-    min_duty = 1638
-    max_duty = 8192
+lora.receive()
 
-    def angle_to_duty(a):
-        return int(min_duty + (max_duty - min_duty) * a / 180)
+oled.fill(0)
+oled.text(f"OK", 0, 0)
+oled.show()
 
-    servo.duty_u16(angle_to_duty(angle))
-    current_angle = angle
+v = 0
 
-set_angle(45)
+def oled_print(oled, text, x=0, y=0, max_chars=16, line_height=8):
+    lines = []
+    while len(text) > max_chars:
+        lines.append(text[:max_chars])
+        text = text[max_chars:]
+    lines.append(text)
 
-def split_l(s):
-    result = []
-    i = 0
-    while i < len(s):
-        if s[i].isalpha():
-            start = i
-            i += 1
-            while i < len(s) and s[i].isdigit():
-                i += 1
-            result.append(s[start:i])
-        else:
-            i += 1
-    return result
-
-def rotate(percent, direction):
-    if direction == "R":
-        angle = int(45 - (percent * 45 / 100))
-    elif direction == "L":
-        angle = int(45 + (percent * 45 / 100))
-    else:
-        angle = 45
-    print(angle)
-    set_angle(angle)
-
-lift = False
-
-buffer = ""
+    for i, line in enumerate(lines[:8]):
+        oled.text(line, x, y + i * line_height)
 
 while True:
-    if uart.any():
-        data = uart.read()
-        if data:
-            try:
-                buffer += data.decode('utf-8')
-            except UnicodeError:
-                pass
-
-            while '\n' in buffer:
-                line, buffer = buffer.split('\n', 1)
-                line = line.strip()
-                if not line:
-                    continue
-
-                print("RX:", line)
-
-                if line == "X":
-                    print("magnes on")
-                if line == "x":
-                    print("magnes off")
-                if line == "W":
-                    lift = True
-                    print("lift on")
-                if line == "w":
-                    lift = False
-                    print("lift off")
-                if line == "U":
-                    print("front lights on")
-                if line == "u":
-                    print("front lights off")
-                if line == "V":
-                    print("back lights on")
-                if line == "v":
-                    print("back lights off")
-                    
-                if not lift:
-                    if line.startswith("F") or line.startswith("B"):
-                        parts = split_l(line)
-                        for part in parts:
-                            if len(part) < 2:
-                                continue
-                            key = part[0]
-                            val_str = part[1:]
-                            if not val_str.isdigit():
-                                continue
-                            val = int(val_str)
-
-                            if key == "F":
-                                pass
-                            elif key == "B":
-                                pass
-                            elif key == "R":
-                                rotate(val, "R")
-                            elif key == "L":
-                                rotate(val, "L")
-                else:
-                    print("lift")
-
-    sleep(0.1)
+    if lora.received_packet():
+        msg = lora.read_payload()
+        print("Odebrano:", msg.decode())
+        v +=1
+        text = f"{v} {msg.decode()}"
+        oled.fill(0)
+        oled_print(oled, text)
+        oled.show()
