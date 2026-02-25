@@ -20,6 +20,8 @@ SERVER_IP = "192.168.4.1"
 SERVER_PORT = 80
 JOY_RANGE = 13200
 
+udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
 def read(channel):
     adc.setCompareChannels(channel)
     adc.startSingleMeasurement()
@@ -32,16 +34,23 @@ def connect_wifi(ssid, password):
     try:
         wlan = network.WLAN(network.STA_IF)
         wlan.active(True)
+
+        wlan.disconnect()
+        sleep(0.5)
+
         if not wlan.isconnected():
             print("Connecting to WiFi...")
             oled.fill(0)
             oled.text("Connecting...", 0, 0)
             oled.show()
+            
             wlan.connect(ssid, password)
+            
             for _ in range(20):
                 if wlan.isconnected():
                     break
                 sleep(0.5)
+                
         if wlan.isconnected():
             print("Connected with IP:", wlan.ifconfig()[0])
             return True
@@ -52,20 +61,15 @@ def connect_wifi(ssid, password):
             oled.text("connect!", 0, 10)
             oled.show()
             return False
+            
     except OSError as e:
-            print(f"{e}")
+        print(f"WiFi Error: {e}")
+        return False
 
 def send_mode(x, y):
     try:
-        addr = socket.getaddrinfo(SERVER_IP, SERVER_PORT)[0][-1]
-        s = socket.socket()
-        s.connect(addr)
         data = ujson.dumps({"x": x, "y": y})
-        s.send(data.encode())
-
-        response = s.recv(1024)
-        print("Response from server:", response.decode())
-        s.close()
+        udp_socket.sendto(data.encode(), (SERVER_IP, SERVER_PORT))
     except Exception as e:
         print("Socket error:", e)
 
@@ -77,6 +81,7 @@ def scale_to_percent(value, center):
 def start():
     centerX = read(ADS1115_COMP_1_GND)
     centerY = read(ADS1115_COMP_0_GND)
+    
     if connect_wifi(config.ssid, config.password):
         while True:
             gc.collect()
@@ -88,10 +93,9 @@ def start():
             oled.fill(0)
             oled.text(f"X:{x}", 0, 0)
             oled.text(f"Y:{y}", 0, 10)
-            oled.text(f"MEM:{mem/1024}", 0, 20)
+            oled.text(f"MEM:{mem/1024:.1f} KB", 0, 20)
             oled.show()
             
-            print(x)
-            print(y)
+            print(f"X: {x} | Y: {y}")
             send_mode(x, y)
             sleep(0.05)

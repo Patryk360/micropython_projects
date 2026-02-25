@@ -6,6 +6,9 @@ from bme280_float import BME280
 from utime import sleep_ms, sleep
 import struct
 
+from speedometer import SpeedSensor
+from blinkers import TurnSignals
+
 RX_POLL_DELAY = const(15)
 RESPONDER_SEND_DELAY = const(10)
 
@@ -32,6 +35,7 @@ def right(percent):
     set_angle(angle)
 
 speaker = PWM(Pin(25))
+speaker.duty(0)
 
 def beep(freq, duration):
     speaker.freq(freq)
@@ -39,37 +43,34 @@ def beep(freq, duration):
     sleep(duration)
     speaker.duty(0)
 
-#beep(100, 0.5)
+beep(600, 0.5)
+sleep(0.5)
+beep(300, 0.5)
+sleep(0.5)
+beep(600, 0.5)
 
-RPWM = Pin(27, Pin.OUT)
-LPWM = Pin(13, Pin.OUT)
+r_en = Pin(26, Pin.OUT)
+l_en = Pin(12, Pin.OUT)
+r_en.value(1)
+l_en.value(1)
 
-R_EN = PWM(Pin(26))
-R_EN.freq(20000)
-L_EN = PWM(Pin(12))
-L_EN.freq(20000)
+rpwm = PWM(Pin(27), freq=20000)
+lpwm = PWM(Pin(13), freq=20000)
 
-def engine(percent, pot):
-    max_pwm = int(pot * 1023 / 100)
-
+def engine(percent, pot_val):
+    max_duty = int(pot_val * 65535 / 100)
     percent = max(min(percent, 100), -100)
+    duty_val = int(abs(percent) * max_duty / 100)
 
     if percent > 0:
-        pwm_val = int(abs(percent) * max_pwm / 100)
-        print(percent)
-        print(pwm_val)
-        RPWM.on()
-        LPWM.off()
-        R_EN.duty(pwm_val)
-        L_EN.duty(pwm_val)
+        lpwm.duty_u16(0)
+        rpwm.duty_u16(duty_val)
+    elif percent < 0:
+        rpwm.duty_u16(0)
+        lpwm.duty_u16(duty_val)
     else:
-        pwm_val = int(abs(percent) * max_pwm / 100)
-        print(percent)
-        print(pwm_val)
-        RPWM.off()
-        LPWM.on()
-        R_EN.duty(pwm_val)
-        L_EN.duty(pwm_val)
+        rpwm.duty_u16(0)
+        lpwm.duty_u16(0)
 
 def responder():
     pipes = (b"21378", b"21379")
@@ -82,14 +83,18 @@ def responder():
     nrf.open_rx_pipe(1, pipes[0])
     nrf.start_listening()
 
+    speed_sensor = SpeedSensor(pin_num=33, diameter_m=0.06)
+    signals = TurnSignals(pin_left=15, pin_right=2)
+
     print("NRF24L01 responder: czekam na dane")
 
     while True:
+        current_speed = speed_sensor.get_speed()
+
         if nrf.any():
             received = nrf.recv()
             try:
                 x_left, y_left, x_right, y_right, pot, beep_sw = struct.unpack(">bbbbbb", received)
-                print(f"📥 Odebrano: ", (x_left, y_left, x_right, y_right, pot, beep_sw))
                 
                 engine(y_left, pot)
                 percent_x_right = max(min(x_right, 100), -100)
@@ -100,21 +105,30 @@ def responder():
 
                 temp, pres, hum = bme280.read_compensated_data()
                 pres = pres / 100
+                
+                if x_right < -50:
+                    signals.set_left(True)
+                    signals.set_right(False)
+                elif x_right > 50:
+                    signals.set_left(False)
+                    signals.set_right(True)
+                else:
+                    signals.set_left(False)
+                    signals.set_right(False)
 
-                print(f"📊 Sensor BME280: Temp={temp:.2f} °C, Ciśnienie={pres:.2f} hPa, Wilgotność={hum:.2f}%")
+                print(f"BME280: {temp:.2f}°C, {pres:.2f}hPa | 🏎️ Prędkość: {current_speed:.2f} km/h")
 
-                packet = struct.pack(">ff", temp, pres)
+                packet = struct.pack(">fff", temp, pres, current_speed)
 
                 sleep_ms(RESPONDER_SEND_DELAY)
                 nrf.stop_listening()
                 nrf.send(packet)
-                print("📤 Odesłano dane:", temp, pres)
+                nrf.start_listening()
 
             except Exception as e:
-                print("❌ Błąd dekodowania lub wysyłania:", e)
-
-            nrf.start_listening()
+                print("Błąd dekodowania lub wysyłania:", e)
 
         sleep_ms(RX_POLL_DELAY)
 
-responder()
+if __name__ == "__main__":
+    responder()

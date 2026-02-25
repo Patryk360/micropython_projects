@@ -14,6 +14,8 @@ oled = SSD1306_I2C(128, 64, i2c)
 
 pot_raw = ADC(Pin(0))
 
+beep_sw = Pin(2, Pin.IN, Pin.PULL_UP)
+
 def read(channel):
     adc.setCompareChannels(channel)
     adc.startSingleMeasurement()
@@ -61,14 +63,13 @@ def start():
         y_right = percent(read(ADS1115_COMP_3_GND))
         pot_percent = round((pot_raw.read_u16() / 65535) * 100)
         pot = round(pot_percent / 10) * 10
-        beep_sw = 0
 
-        packet = struct.pack(">bbbbbb", x_left, y_left, x_right, y_right, pot, beep_sw)
+        packet = struct.pack(">bbbbbb", x_left, y_left, x_right, y_right, pot, beep_sw.value())
 
         nrf.stop_listening()
         try:
-            print("→ Wysyłam dane:", (x_left, y_left, x_right, y_right, pot, beep_sw))
-            oled_clear_and_text(["Wysylam dane", x_left, y_left, x_right, y_right, pot])
+            print("→ Wysyłam dane:", (x_left, y_left, x_right, y_right, pot, beep_sw.value()))
+            #oled_clear_and_text(["Wysylam dane", x_left, y_left, x_right, y_right, pot, beep_sw.value()])
             nrf.send(packet)
         except OSError as e:
             print("❌ Błąd wysyłania:", e)
@@ -86,9 +87,9 @@ def start():
         if nrf.any():
             try:
                 response = nrf.recv()
-                temp, pres = struct.unpack(">ff", response)
-                print("✅ Otrzymano dane:", (temp, pres))
-                oled_clear_and_text([f"T: {temp:.2f} C", f"P: {pres:.2f} hPa"])
+                temp, pres, speed = struct.unpack(">fff", response)
+                print("✅ Otrzymano dane:", (temp, pres, speed))
+                oled_clear_and_text([f"T: {temp:.2f} C", f"P: {pres:.2f} hPa", f"S: {speed:.2f} km/h", f"Pot: {pot}"])
             except Exception as e:
                 print("⚠️ Błąd dekodowania:", e)
                 oled_clear_and_text(["Blad dekodowania"])
