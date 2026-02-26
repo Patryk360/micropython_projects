@@ -3,11 +3,12 @@ sys.path.append("/libs")
 from machine import Pin, SPI, I2C, PWM
 from nrf24l01 import NRF24L01
 from bme280_float import BME280
-from utime import sleep_ms, sleep
+from time import sleep_ms, sleep, ticks_ms, ticks_diff
 import struct
 
 from speedometer import SpeedSensor
 from blinkers import TurnSignals
+from horn import Horn
 
 RX_POLL_DELAY = const(15)
 RESPONDER_SEND_DELAY = const(10)
@@ -33,21 +34,6 @@ def right(percent):
     percent = min(max(percent, 0), 100)
     angle = 90 + ((110 - 90) * percent / 100)
     set_angle(angle)
-
-speaker = PWM(Pin(25))
-speaker.duty(0)
-
-def beep(freq, duration):
-    speaker.freq(freq)
-    speaker.duty(20)
-    sleep(duration)
-    speaker.duty(0)
-
-beep(600, 0.5)
-sleep(0.5)
-beep(300, 0.5)
-sleep(0.5)
-beep(600, 0.5)
 
 r_en = Pin(26, Pin.OUT)
 l_en = Pin(12, Pin.OUT)
@@ -83,20 +69,31 @@ def responder():
     nrf.open_rx_pipe(1, pipes[0])
     nrf.start_listening()
 
-    speed_sensor = SpeedSensor(pin_num=33, diameter_m=0.06)
-    signals = TurnSignals(pin_left=15, pin_right=2)
-
     print("NRF24L01 responder: czekam na dane")
+    
+    speed_sensor = SpeedSensor(pin_num=32, diameter_m=0.06)
+    signals = TurnSignals(pin_left=15, pin_right=2)
+    car_horn = Horn(pin_num=4, timer_num=2)
+
+    last_receive_time = ticks_ms()
+    failsafe_active = False
 
     while True:
         current_speed = speed_sensor.get_speed()
+        current_time = ticks_ms()
 
         if nrf.any():
             received = nrf.recv()
             try:
                 x_left, y_left, x_right, y_right, pot, beep_sw = struct.unpack(">bbbbbb", received)
                 
+                last_receive_time = current_time
+                if failsafe_active:
+                    print("Połączenie przywrócone!")
+                    failsafe_active = False
+                
                 engine(y_left, pot)
+                
                 percent_x_right = max(min(x_right, 100), -100)
                 if percent_x_right >= 0:
                     right(percent_x_right)
@@ -115,11 +112,11 @@ def responder():
                 else:
                     signals.set_left(False)
                     signals.set_right(False)
-
-                print(f"BME280: {temp:.2f}°C, {pres:.2f}hPa | 🏎️ Prędkość: {current_speed:.2f} km/h")
+                
+                if not beep_sw: 
+                    car_horn.beep(freq=400, duration_ms=500)
 
                 packet = struct.pack(">fff", temp, pres, current_speed)
-
                 sleep_ms(RESPONDER_SEND_DELAY)
                 nrf.stop_listening()
                 nrf.send(packet)
@@ -127,6 +124,18 @@ def responder():
 
             except Exception as e:
                 print("Błąd dekodowania lub wysyłania:", e)
+
+        else:
+            if ticks_diff(current_time, last_receive_time) > 500:
+                if not failsafe_active:
+                    print("Brak sygnału! Uruchamiam FAILSAFE (zatrzymuję silniki)")
+                    failsafe_active = True
+                    
+                    engine(0, 0) 
+                    right(0) 
+                    
+                    signals.set_left(False)
+                    signals.set_right(False)
 
         sleep_ms(RX_POLL_DELAY)
 
